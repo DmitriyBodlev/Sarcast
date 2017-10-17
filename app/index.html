@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <!-- The first thing in any HTML file should be the charset -->
+  <meta charset="utf-8">
+
+  <!-- Make the page mobile compatible -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Allow installing the app to the homescreen -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+
+  <!-- iOS home screen icons -->
+  <meta name="apple-mobile-web-app-title" content="react boilerplate">
+  <link rel="apple-touch-icon" sizes="120x120" href="/icon-120x120.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="/icon-152x152.png">
+  <link rel="apple-touch-icon" sizes="167x167" href="/icon-167x167.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/icon-180x180.png">
+
+  <link rel="icon" href="/favicon.ico" />
+  <title>React.js Boilerplate</title>
+</head>
+
+<body>
+  <!-- Display a message if JS has been disabled on the browser. -->
+  <noscript>If you're seeing this message, that means
+    <strong>JavaScript has been disabled on your browser</strong>, please
+    <strong>enable JS</strong> to make this app work.</noscript>
+  <p>YouTube Data API Quickstart</p>
+
+  <!--Add buttons to initiate auth sequence and sign out-->
+  <button id="authorize-button" style="display: none;">Authorize</button>
+  <button id="signout-button" style="display: none;">Sign Out</button>
+  
+  <form onsubmit="return onSubmit(this)">
+    <input id="some" type="text" />
+    <button type="submit">SEARCH</button>
+  </form>
+
+  <pre id="content">
+    <img id="content-img" src="" alt="">
+  </pre>
+  <!-- The app hooks into this div -->
+  <div id="app"></div>
+  <!-- Open Sans Font -->
+  <link href="https://fonts.googleapis.com/css?family=Open+Sans:400,700" rel="stylesheet">
+
+  <script>
+    /***** START BOILERPLATE CODE: Load client library, authorize user. *****/
+
+    // Global variables for GoogleAuth object, auth status.
+    var GoogleAuth;
+
+    /**
+     * Load the API's client and auth2 modules.
+     * Call the initClient function after the modules load.
+     */
+    function handleClientLoad() {
+      gapi.load('client:auth2', initClient);
+    }
+
+    function initClient() {
+      // Initialize the gapi.client object, which app uses to make API requests.
+      // Get API key and client ID from API Console.
+      // 'scope' field specifies space-delimited list of access scopes
+
+      gapi.client.init({
+        'clientId': '178621390101-cvo78i0ci6ifqpkhki5t14mvgflbg36u',
+        'discoveryDocs': ['https://www.googleapis.com/discovery/v1/apis/youtube/v3/rest'],
+        'scope': 'https://www.googleapis.com/auth/youtube.force-ssl https://www.googleapis.com/auth/youtubepartner'
+      }).then(function () {
+        GoogleAuth = gapi.auth2.getAuthInstance();
+        console.log(GoogleAuth);
+        // Listen for sign-in state changes.
+        // GoogleAuth.isSignedIn.listen(updateSigninStatus);
+        // GoogleAuth.signIn()
+        // Handle initial sign-in state. (Determine if user is already signed in.)
+        
+        setSigninStatus();
+      });
+    }
+
+    function handleAuthClick(event) {
+      // Sign user in after click on auth button.
+      GoogleAuth.signIn();
+    }
+
+    function setSigninStatus() {
+      var user = GoogleAuth.currentUser.get();
+      isAuthorized = user.hasGrantedScopes(
+        'https://www.googleapis.com/auth/youtube.force-ssl https://www.googleapis.com/auth/youtubepartner');
+      // Toggle button text and displayed statement based on current auth status.
+      if (isAuthorized) {
+        defineRequest();
+      } else {
+        GoogleAuth.signIn();
+      }
+    }
+
+    function updateSigninStatus(isSignedIn) {
+      setSigninStatus();
+    }
+
+    function createResource(properties) {
+      var resource = {};
+      var normalizedProps = properties;
+      for (var p in properties) {
+        var value = properties[p];
+        if (p && p.substr(-2, 2) == '[]') {
+          var adjustedName = p.replace('[]', '');
+          if (value) {
+            normalizedProps[adjustedName] = value.split(',');
+          }
+          delete normalizedProps[p];
+        }
+      }
+      for (var p in normalizedProps) {
+        // Leave properties that don't have values out of inserted resource.
+        if (normalizedProps.hasOwnProperty(p) && normalizedProps[p]) {
+          var propArray = p.split('.');
+          var ref = resource;
+          for (var pa = 0; pa < propArray.length; pa++) {
+            var key = propArray[pa];
+            if (pa == propArray.length - 1) {
+              ref[key] = normalizedProps[p];
+            } else {
+              ref = ref[key] = ref[key] || {};
+            }
+          }
+        };
+      }
+      return resource;
+    }
+
+    function removeEmptyParams(params) {
+      for (var p in params) {
+        if (!params[p] || params[p] == 'undefined') {
+          delete params[p];
+        }
+      }
+      return params;
+    }
+
+    function executeRequest(request, callback = null) {
+      request.execute(function (response) {
+        console.log(response);
+        if (callback) callback(response);
+      });
+    }
+
+    function buildApiRequest(requestMethod, path, params, properties, callback = null) {
+      params = removeEmptyParams(params);
+      var request;
+      if (properties) {
+        var resource = createResource(properties);
+        request = gapi.client.request({
+          'body': resource,
+          'method': requestMethod,
+          'path': path,
+          'params': params
+        });
+      } else {
+        request = gapi.client.request({
+          'method': requestMethod,
+          'path': path,
+          'params': params
+        });
+      }
+      executeRequest(request, callback);
+    }
+
+    /***** END BOILERPLATE CODE *****/
+
+
+    function defineRequest(text = null) {
+      // See full sample for buildApiRequest() code, which is not 
+      // specific to a particular youtube or youtube method.
+      function some(response) {
+        function some(response) {
+          document.getElementById('content-img').setAttribute("src", response.items[0].brandingSettings.image.bannerImageUrl)
+        }
+        buildApiRequest('GET',
+          '/youtube/v3/channels', {
+            'id': response.items[0].id.channelId,
+            'part': 'brandingSettings'
+          },
+          null, some);
+      }
+      buildApiRequest('GET',
+        '/youtube/v3/search', {
+          'maxResults': '25',
+          'part': 'snippet',
+          'q': text || 'Руслан Усачев',
+          'type': ''
+        },
+        null,
+        some);
+
+      // GoogleAuth.signOut();
+    }
+    function onSubmit(e) {
+      // e.preventDefault();
+     if(e.firstElementChild.value.length === 0) return false;
+     e.firstElementChild.value
+     defineRequest(e.firstElementChild.value);
+     return false;
+    }
+
+  </script>
+
+  <button id="execute-request-button">Authorize</button>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+  <script async defer src="https://apis.google.com/js/api.js" onload="this.onload=function(){};handleClientLoad()" onreadystatechange="if (this.readyState === 'complete') this.onload()">
+
+
+  </script>
+
+  </script>
+
+  <script async defer src="https://apis.google.com/js/api.js" onload="this.onload=function(){};handleClientLoad()" onreadystatechange="if (this.readyState === 'complete') this.onload()">
+
+
+  </script>
+  <!-- A lot of magic happens in this file. HtmlWebpackPlugin automatically includes all assets (e.g. bundle.js, main.css) with the correct HTML tags, which is why they are missing in this HTML file. Don't add any assets here! (Check out the webpack config files in internals/webpack for details) -->
+</body>
+
+</html>
